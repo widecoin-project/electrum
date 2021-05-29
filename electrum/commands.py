@@ -75,12 +75,9 @@ class NotSynchronizedException(Exception):
     pass
 
 
-def satoshis_or_max(amount):
-    return satoshis(amount) if amount != '!' else '!'
-
 def satoshis(amount):
     # satoshi conversion must not be performed by the parser
-    return int(COIN*Decimal(amount)) if amount is not None else None
+    return int(COIN*Decimal(amount)) if amount not in ['!', None] else amount
 
 def format_satoshis(x):
     return str(Decimal(x)/COIN) if x is not None else None
@@ -257,8 +254,8 @@ class Commands:
     @command('')
     async def restore(self, text, passphrase=None, password=None, encrypt_file=True, wallet_path=None):
         """Restore a wallet from text. Text can be a seed phrase, a master
-        public key, a master private key, a list of bitcoin addresses
-        or bitcoin private keys.
+        public key, a master private key, a list of widecoin addresses
+        or widecoin private keys.
         If you want to be prompted for an argument, type '?' or ':' (concealed)
         """
         # TODO create a separate command that blocks until wallet is synced
@@ -621,7 +618,7 @@ class Commands:
         domain_coins = from_coins.split(',') if from_coins else None
         change_addr = self._resolver(change_addr, wallet)
         domain_addr = None if domain_addr is None else map(self._resolver, domain_addr, repeat(wallet))
-        amount_sat = satoshis_or_max(amount)
+        amount_sat = satoshis(amount)
         outputs = [PartialTxOutput.from_address_and_value(destination, amount_sat)]
         tx = wallet.create_transaction(
             outputs,
@@ -652,7 +649,7 @@ class Commands:
         final_outputs = []
         for address, amount in outputs:
             address = self._resolver(address, wallet)
-            amount_sat = satoshis_or_max(amount)
+            amount_sat = satoshis(amount)
             final_outputs.append(PartialTxOutput.from_address_and_value(address, amount_sat))
         tx = wallet.create_transaction(
             final_outputs,
@@ -700,7 +697,7 @@ class Commands:
 
     @command('w')
     async def setlabel(self, key, label, wallet: Abstract_Wallet = None):
-        """Assign a label to an item. Item may be a bitcoin address or a
+        """Assign a label to an item. Item may be a widecoin address or a
         transaction ID"""
         wallet.set_label(key, label)
 
@@ -1092,13 +1089,7 @@ class Commands:
 
     @command('n')
     async def clear_ln_blacklist(self):
-        if self.network.path_finder:
-            self.network.path_finder.liquidity_hints.clear_blacklist()
-
-    @command('n')
-    async def reset_liquidity_hints(self):
-        if self.network.path_finder:
-            self.network.path_finder.liquidity_hints.reset_liquidity_hints()
+        self.network.path_finder.blacklist.clear()
 
     @command('w')
     async def list_invoices(self, wallet: Abstract_Wallet = None):
@@ -1153,7 +1144,7 @@ class Commands:
     @command('wnp')
     async def normal_swap(self, onchain_amount, lightning_amount, password=None, wallet: Abstract_Wallet = None):
         """
-        Normal submarine swap: send on-chain BTC, receive on Lightning
+        Normal submarine swap: send on-chain WCN, receive on Lightning
         Note that your funds will be locked for 24h if you do not have enough incoming capacity.
         """
         sm = wallet.lnworker.swap_manager
@@ -1221,8 +1212,8 @@ def eval_bool(x: str) -> bool:
 
 param_descriptions = {
     'privkey': 'Private key. Type \'?\' to get a prompt.',
-    'destination': 'Bitcoin address, contact or alias',
-    'address': 'Bitcoin address',
+    'destination': 'Widecoin address, contact or alias',
+    'address': 'Widecoin address',
     'seed': 'Seed phrase',
     'txid': 'Transaction ID',
     'pos': 'Position',
@@ -1232,8 +1223,8 @@ param_descriptions = {
     'pubkey': 'Public key',
     'message': 'Clear text message. Use quotes if it contains spaces.',
     'encrypted': 'Encrypted message',
-    'amount': 'Amount to be sent (in BTC). Type \'!\' to send the maximum available.',
-    'requested_amount': 'Requested amount (in BTC).',
+    'amount': 'Amount to be sent (in WCN). Type \'!\' to send the maximum available.',
+    'requested_amount': 'Requested amount (in WCN).',
     'outputs': 'list of ["address", amount]',
     'redeem_script': 'redeem script (hexadecimal)',
     'lightning_amount': "Amount sent or received in a submarine swap. Set it to 'dryrun' to receive a value",
@@ -1253,7 +1244,7 @@ command_options = {
     'labels':      ("-l", "Show the labels of listed addresses"),
     'nocheck':     (None, "Do not verify aliases"),
     'imax':        (None, "Maximum number of inputs"),
-    'fee':         ("-f", "Transaction fee (absolute, in BTC)"),
+    'fee':         ("-f", "Transaction fee (absolute, in WCN)"),
     'feerate':     (None, "Transaction fee rate (in sat/byte)"),
     'from_addr':   ("-F", "Source address (must be a wallet address; use sweep to spend from non-wallet address)."),
     'from_coins':  (None, "Source coins (must be in wallet; use sweep to spend from non-wallet address)."),
@@ -1274,7 +1265,7 @@ command_options = {
     'timeout':     (None, "Timeout in seconds"),
     'force':       (None, "Create new address beyond gap limit, if no more addresses are available."),
     'pending':     (None, "Show only pending requests."),
-    'push_amount': (None, 'Push initial amount (in BTC)'),
+    'push_amount': (None, 'Push initial amount (in WCN)'),
     'expired':     (None, "Show only expired requests."),
     'paid':        (None, "Show only paid requests."),
     'show_addresses': (None, "Show input and output addresses"),
@@ -1323,10 +1314,10 @@ config_variables = {
     'addrequest': {
         'ssl_privkey': 'Path to your SSL private key, needed to sign the request.',
         'ssl_chain': 'Chain of SSL certificates, needed for signed requests. Put your certificate at the top and the root CA at the end',
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitcoin: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of widecoin: URIs. Example: \"(\'file:///var/www/\',\'https://widecoin.org/\')\"',
     },
     'listrequests':{
-        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of bitcoin: URIs. Example: \"(\'file:///var/www/\',\'https://electrum.org/\')\"',
+        'url_rewrite': 'Parameters passed to str.replace(), in order to create the r= part of widecoin: URIs. Example: \"(\'file:///var/www/\',\'https://widecoin.org/\')\"',
     }
 }
 
@@ -1415,7 +1406,7 @@ def get_parser():
     subparsers = parser.add_subparsers(dest='cmd', metavar='<command>')
     # gui
     parser_gui = subparsers.add_parser('gui', description="Run Electrum's Graphical User Interface.", help="Run GUI (default)")
-    parser_gui.add_argument("url", nargs='?', default=None, help="bitcoin URI (or bip70 file)")
+    parser_gui.add_argument("url", nargs='?', default=None, help="widecoin URI (or bip70 file)")
     parser_gui.add_argument("-g", "--gui", dest="gui", help="select graphical user interface", choices=['qt', 'kivy', 'text', 'stdio'])
     parser_gui.add_argument("-m", action="store_true", dest="hide_gui", default=False, help="hide GUI on startup")
     parser_gui.add_argument("-L", "--lang", dest="language", default=None, help="default language used in GUI")

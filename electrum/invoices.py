@@ -6,7 +6,7 @@ import attr
 
 from .json_db import StoredObject
 from .i18n import _
-from .util import age, InvoiceError
+from .util import age
 from .lnaddr import lndecode, LnAddr
 from . import constants
 from .bitcoin import COIN, TOTAL_COIN_SUPPLY_LIMIT_IN_BTC
@@ -134,12 +134,12 @@ class OnchainInvoice(Invoice):
     def _validate_amount(self, attribute, value):
         if isinstance(value, int):
             if not (0 <= value <= TOTAL_COIN_SUPPLY_LIMIT_IN_BTC * COIN):
-                raise InvoiceError(f"amount is out-of-bounds: {value!r} sat")
+                raise ValueError(f"amount is out-of-bounds: {value!r} sat")
         elif isinstance(value, str):
             if value != "!":
-                raise InvoiceError(f"unexpected amount: {value!r}")
+                raise ValueError(f"unexpected amount: {value!r}")
         else:
-            raise InvoiceError(f"unexpected amount: {value!r}")
+            raise ValueError(f"unexpected amount: {value!r}")
 
     @classmethod
     def from_bip70_payreq(cls, pr: 'PaymentRequest', height:int) -> 'OnchainInvoice':
@@ -173,9 +173,9 @@ class LNInvoice(Invoice):
             return
         if isinstance(value, int):
             if not (0 <= value <= TOTAL_COIN_SUPPLY_LIMIT_IN_BTC * COIN * 1000):
-                raise InvoiceError(f"amount is out-of-bounds: {value!r} msat")
+                raise ValueError(f"amount is out-of-bounds: {value!r} msat")
         else:
-            raise InvoiceError(f"unexpected amount: {value!r}")
+            raise ValueError(f"unexpected amount: {value!r}")
 
     @property
     def _lnaddr(self) -> LnAddr:
@@ -231,3 +231,4 @@ class LNInvoice(Invoice):
             # 'tags': str(lnaddr.tags),
         })
         return d
+

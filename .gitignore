@@ -4,7 +4,7 @@
 build/
 dist/
 *.egg/
-Electrum.egg-info/
+Electrum_WCN.egg-info/
 electrum/locale/
 .devlocaltmp/
 *_trial_temp
@@ -20,8 +20,9 @@ electrum_data
 .DS_Store
 
 # icons
-electrum/gui/kivy/theming/atlas/*.png
-electrum/gui/kivy/theming/atlas/*.atlas
+electrum/gui/kivy/theming/light-0.png
+electrum/gui/kivy/theming/light-1.png
+electrum/gui/kivy/theming/light.atlas
 
 # tests/tox
 .tox/

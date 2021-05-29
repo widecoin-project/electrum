@@ -160,7 +160,7 @@ RUN cd /opt \
     && cd buildozer \
     && git remote add sombernight https://github.com/SomberNight/buildozer \
     && git fetch --all \
-    # commit: from branch sombernight/electrum_20210421
+    # commit: from branch sombernight/202104_android_adaptiveicon
     && git checkout "c17ac3618334c9936253e8f5b88dce43dc4da75b^{commit}" \
     && python3 -m pip install --user -e .
 
@@ -170,7 +170,7 @@ RUN cd /opt \
     && cd python-for-android \
     && git remote add sombernight https://github.com/SomberNight/python-for-android \
     && git fetch --all \
-    # commit: from branch sombernight/electrum_20210421
+    # commit: from branch sombernight/electrum_20200703
     && git checkout "5356bc7838b03c8c174c91fe01539c91d1b40b9f^{commit}" \
     && python3 -m pip install --user -e .
 

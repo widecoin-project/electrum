@@ -1,4 +1,4 @@
-Electrum - Lightweight Bitcoin client
+Electrum Widecoin - Lightweight Widecoin client
 =====================================
 
 ::
@@ -6,7 +6,7 @@ Electrum - Lightweight Bitcoin client
   Licence: MIT Licence
   Author: Thomas Voegtlin
   Language: Python (>= 3.6)
-  Homepage: https://electrum.org/
+  Homepage: https://widecoin.org/
 
 
 .. image:: https://travis-ci.org/spesmilo/electrum.svg?branch=master
@@ -28,7 +28,7 @@ Getting started
 
 (*If you've come here looking to simply run Electrum,* `you may download it here`_.)
 
-.. _you may download it here: https://electrum.org/#download
+.. _you may download it here: https://widecoin.org/#download
 
 Electrum itself is pure Python, and so are most of the required dependencies,
 but not everything. The following sections describe how to run from source, but here
@@ -94,8 +94,8 @@ Development version (git clone)
 
 Check out the code from GitHub::
 
-    git clone git://github.com/spesmilo/electrum.git
-    cd electrum
+    git clone git://github.com/widecoin-project/electrum-wcn.git
+    cd electrum-wcn
     git submodule update --init
 
 Run install (this should install dependencies)::

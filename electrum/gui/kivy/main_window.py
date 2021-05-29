@@ -188,12 +188,11 @@ class ElectrumWindow(App, Logger):
     use_gossip = BooleanProperty(False)
     def on_use_gossip(self, instance, x):
         self.electrum_config.set_key('use_gossip', self.use_gossip, True)
-        if self.network:
-            if self.use_gossip:
-                self.network.start_gossip()
-            else:
-                self.network.run_from_another_thread(
-                    self.network.stop_gossip())
+        if self.use_gossip:
+            self.network.start_gossip()
+        else:
+            self.network.run_from_another_thread(
+                self.network.stop_gossip())
 
     use_change = BooleanProperty(False)
     def on_use_change(self, instance, x):
@@ -524,7 +523,7 @@ class ElectrumWindow(App, Logger):
         from jnius import autoclass, cast
         from android import activity
         PythonActivity = autoclass('org.kivy.android.PythonActivity')
-        SimpleScannerActivity = autoclass("org.electrum.qr.SimpleScannerActivity")
+        SimpleScannerActivity = autoclass("org.electrum_wcn.qr.SimpleScannerActivity")
         Intent = autoclass('android.content.Intent')
         intent = Intent(PythonActivity.mActivity, SimpleScannerActivity)
 
@@ -611,7 +610,7 @@ class ElectrumWindow(App, Logger):
         self.fiat_unit = self.fx.ccy if self.fx.is_enabled() else ''
         # default tab
         self.switch_to('history')
-        # bind intent for bitcoin: URI scheme
+        # bind intent for widecoin: URI scheme
         if platform == 'android':
             from android import activity
             from jnius import autoclass
@@ -989,7 +988,7 @@ class ElectrumWindow(App, Logger):
             icon = (os.path.dirname(os.path.realpath(__file__))
                     + '/../../' + self.icon)
             notification.notify('Electrum', message,
-                            app_icon=icon, app_name='Electrum')
+                            app_icon=icon, app_name='Electrum Widecoin')
         except ImportError:
             self.logger.Error('Notification: needs plyer; `sudo python3 -m pip install plyer`')
 
@@ -1028,7 +1027,7 @@ class ElectrumWindow(App, Logger):
         self.qr_dialog(label.name, label.data, show_text_with_qr)
 
     def show_error(self, error, width='200dp', pos=None, arrow_pos=None,
-                   exit=False, icon=f'atlas://{KIVY_GUI_PATH}/theming/atlas/light/error', duration=0,
+                   exit=False, icon=f'atlas://{KIVY_GUI_PATH}/theming/light/error', duration=0,
                    modal=False):
         ''' Show an error Message Bubble.
         '''
@@ -1040,7 +1039,7 @@ class ElectrumWindow(App, Logger):
                   exit=False, duration=0, modal=False):
         ''' Show an Info Message Bubble.
         '''
-        self.show_error(error, icon=f'atlas://{KIVY_GUI_PATH}/theming/atlas/light/important',
+        self.show_error(error, icon=f'atlas://{KIVY_GUI_PATH}/theming/light/important',
             duration=duration, modal=modal, exit=exit, pos=pos,
             arrow_pos=arrow_pos)
 
@@ -1081,7 +1080,7 @@ class ElectrumWindow(App, Logger):
             info_bubble.show_arrow = False
             img.allow_stretch = True
             info_bubble.dim_background = True
-            info_bubble.background_image = f'atlas://{KIVY_GUI_PATH}/theming/atlas/light/card'
+            info_bubble.background_image = f'atlas://{KIVY_GUI_PATH}/theming/light/card'
         else:
             info_bubble.fs = False
             info_bubble.icon = icon

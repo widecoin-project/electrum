@@ -10,6 +10,7 @@ from electrum.util import format_satoshis
 from electrum.bitcoin import is_address, COIN
 from electrum.transaction import PartialTxOutput
 from electrum.network import TxBroadcastError, BestEffortRequestFailed
+from electrum.logging import console_stderr_handler
 
 _ = lambda x:x  # i18n
 
@@ -34,6 +35,8 @@ class ElectrumGui:
 
         self.done = 0
         self.last_balance = ""
+
+        console_stderr_handler.setLevel(logging.CRITICAL)
 
         self.str_recipient = ""
         self.str_description = ""

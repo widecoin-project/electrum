@@ -81,10 +81,6 @@ TX_ICONS = [
     "confirmed.png",
 ]
 
-
-ROLE_SORT_ORDER = Qt.UserRole + 1000
-
-
 class HistoryColumns(IntEnum):
     STATUS = 0
     DESCRIPTION = 1
@@ -97,8 +93,8 @@ class HistoryColumns(IntEnum):
 
 class HistorySortModel(QSortFilterProxyModel):
     def lessThan(self, source_left: QModelIndex, source_right: QModelIndex):
-        item1 = self.sourceModel().data(source_left, ROLE_SORT_ORDER)
-        item2 = self.sourceModel().data(source_right, ROLE_SORT_ORDER)
+        item1 = self.sourceModel().data(source_left, Qt.UserRole)
+        item2 = self.sourceModel().data(source_right, Qt.UserRole)
         if item1 is None or item2 is None:
             raise Exception(f'UserRole not set for column {source_left.column()}')
         v1 = item1.value()
@@ -140,7 +136,8 @@ class HistoryNode(CustomNode):
                 tx_mined_info = self.model.tx_mined_info_from_tx_item(tx_item)
                 status, status_str = window.wallet.get_tx_status(tx_hash, tx_mined_info)
 
-        if role == ROLE_SORT_ORDER:
+        if role == Qt.UserRole:
+            # for sorting
             d = {
                 HistoryColumns.STATUS:
                     # respect sort order of self.transactions (wallet.get_full_history)
@@ -161,8 +158,6 @@ class HistoryNode(CustomNode):
                 HistoryColumns.TXID: tx_hash if not is_lightning else None,
             }
             return QVariant(d[col])
-        if role == MyTreeView.ROLE_EDIT_KEY:
-            return QVariant(get_item_key(tx_item))
         if role not in (Qt.DisplayRole, Qt.EditRole):
             if col == HistoryColumns.STATUS and role == Qt.DecorationRole:
                 icon = "lightning" if is_lightning else TX_ICONS[status]
@@ -455,9 +450,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
             return False
 
     def __init__(self, parent, model: HistoryModel):
-        super().__init__(parent, self.create_menu,
-                         stretch_column=HistoryColumns.DESCRIPTION,
-                         editable_columns=[HistoryColumns.DESCRIPTION, HistoryColumns.FIAT_VALUE])
+        super().__init__(parent, self.create_menu, stretch_column=HistoryColumns.DESCRIPTION)
         self.config = parent.config
         self.hm = model
         self.proxy = HistorySortModel(self)
@@ -471,6 +464,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         self.create_toolbar_buttons()
         self.wallet = self.parent.wallet  # type: Abstract_Wallet
         self.sortByColumn(HistoryColumns.STATUS, Qt.AscendingOrder)
+        self.editable_columns |= {HistoryColumns.FIAT_VALUE}
         self.setRootIsDecorated(True)
         self.header().setStretchLastSection(False)
         for col in HistoryColumns:
@@ -589,11 +583,11 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         grid.addWidget(QLabel(self.format_date(start_date)), 1, 1)
         grid.addWidget(QLabel(self.format_date(end_date)), 1, 2)
         #
-        grid.addWidget(QLabel(_("BTC balance")), 2, 0)
+        grid.addWidget(QLabel(_("WCN balance")), 2, 0)
         grid.addWidget(QLabel(format_amount(start['BTC_balance'])), 2, 1)
         grid.addWidget(QLabel(format_amount(end['BTC_balance'])), 2, 2)
         #
-        grid.addWidget(QLabel(_("BTC Fiat price")), 3, 0)
+        grid.addWidget(QLabel(_("WCN Fiat price")), 3, 0)
         grid.addWidget(QLabel(format_fiat(start.get('BTC_fiat_price'))), 3, 1)
         grid.addWidget(QLabel(format_fiat(end.get('BTC_fiat_price'))), 3, 2)
         #
@@ -610,11 +604,11 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         grid.addWidget(QLabel(format_fiat(end.get('unrealized_gains', ''))), 6, 2)
         #
         grid2 = QGridLayout()
-        grid2.addWidget(QLabel(_("BTC incoming")), 0, 0)
+        grid2.addWidget(QLabel(_("WCN incoming")), 0, 0)
         grid2.addWidget(QLabel(format_amount(flow['BTC_incoming'])), 0, 1)
         grid2.addWidget(QLabel(_("Fiat incoming")), 1, 0)
         grid2.addWidget(QLabel(format_fiat(flow.get('fiat_incoming'))), 1, 1)
-        grid2.addWidget(QLabel(_("BTC outgoing")), 2, 0)
+        grid2.addWidget(QLabel(_("WCN outgoing")), 2, 0)
         grid2.addWidget(QLabel(format_amount(flow['BTC_outgoing'])), 2, 1)
         grid2.addWidget(QLabel(_("Fiat outgoing")), 3, 0)
         grid2.addWidget(QLabel(format_fiat(flow.get('fiat_outgoing'))), 3, 1)
@@ -640,8 +634,8 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
         except NothingToPlotException as e:
             self.parent.show_message(str(e))
 
-    def on_edited(self, idx, edit_key, *, text):
-        index = self.model().mapToSource(idx)
+    def on_edited(self, index, user_role, text):
+        index = self.model().mapToSource(index)
         tx_item = index.internalPointer().get_data()
         column = index.column()
         key = get_item_key(tx_item)
@@ -840,9 +834,7 @@ class HistoryList(MyTreeView, AcceptFileDragDrop):
                 from electrum.util import json_encode
                 f.write(json_encode(txns))
 
-    def get_text_from_coordinate(self, row, col):
-        return self.get_role_data_from_coordinate(row, col, role=Qt.DisplayRole)
-
-    def get_role_data_from_coordinate(self, row, col, *, role):
+    def get_text_and_userrole_from_coordinate(self, row, col):
         idx = self.model().mapToSource(self.model().index(row, col))
-        return self.hm.data(idx, role).value()
+        tx_item = idx.internalPointer().get_data()
+        return self.hm.data(idx, Qt.DisplayRole).value(), get_item_key(tx_item)

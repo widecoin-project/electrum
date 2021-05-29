@@ -427,7 +427,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             addr = str(addrs[0])
             if not bitcoin.is_address(addr):
                 neutered_addr = addr[:5] + '..' + addr[-2:]
-                raise WalletFileException(f'The addresses in this wallet are not bitcoin addresses.\n'
+                raise WalletFileException(f'The addresses in this wallet are not widecoin addresses.\n'
                                           f'e.g. {neutered_addr} (length: {len(addr)})')
 
     def check_returned_address_for_corruption(func):
@@ -566,7 +566,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         if self.is_watching_only():
             raise Exception(_("This is a watching-only wallet"))
         if not is_address(address):
-            raise Exception(f"Invalid bitcoin address: {address}")
+            raise Exception(f"Invalid widecoin address: {address}")
         if not self.is_mine(address):
             raise Exception(_('Address not in wallet.') + f' {address}')
         index = self.get_address_index(address)
@@ -586,12 +586,6 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         """Returns a map: pubkey -> (keystore, derivation_suffix)"""
         return {}
 
-    def is_lightning_funding_tx(self, txid: Optional[str]) -> bool:
-        if not self.lnworker or txid is None:
-            return False
-        return any([chan.funding_outpoint.txid == txid
-                    for chan in self.lnworker.channels.values()])
-
     def get_tx_info(self, tx: Transaction) -> TxWalletDetails:
         tx_wallet_delta = self.get_wallet_delta(tx)
         is_relevant = tx_wallet_delta.is_relevant
@@ -602,7 +596,10 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
         can_bump = False
         can_cpfp = False
         tx_hash = tx.txid()  # note: txid can be None! e.g. when called from GUI tx dialog
-        is_lightning_funding_tx = self.is_lightning_funding_tx(tx_hash)
+        is_lightning_funding_tx = False
+        if self.has_lightning() and tx_hash is not None:
+            is_lightning_funding_tx = any([chan.funding_outpoint.txid == tx_hash
+                                           for chan in self.lnworker.channels.values()])
         tx_we_already_have_in_db = self.db.get_transaction(tx_hash)
         can_save_as_local = (is_relevant and tx.txid() is not None
                              and (tx_we_already_have_in_db is None or not tx_we_already_have_in_db.is_complete()))
@@ -1244,9 +1241,6 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             # all inputs should be is_mine
             if not all([self.is_mine(self.get_txin_address(txin)) for txin in tx.inputs()]):
                 continue
-            # do not mutate LN funding txs, as that would change their txid
-            if self.is_lightning_funding_tx(txid):
-                continue
             # prefer txns already in mempool (vs local)
             if hist_item.tx_mined_status.height == TX_HEIGHT_LOCAL:
                 candidate = tx
@@ -1280,7 +1274,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                 addrs = self.get_change_addresses(slice_start=-self.gap_limit_for_change)
                 change_addrs = [random.choice(addrs)] if addrs else []
         for addr in change_addrs:
-            assert is_address(addr), f"not valid bitcoin address: {addr}"
+            assert is_address(addr), f"not valid widecoin address: {addr}"
             # note that change addresses are not necessarily ismine
             # in which case this is a no-op
             self.check_address_for_corruption(addr)
@@ -1311,7 +1305,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
                 selected_addr = random.choice(addrs)
             else:  # fallback for e.g. imported wallets
                 selected_addr = self.get_receiving_address()
-        assert is_address(selected_addr), f"not valid bitcoin address: {selected_addr}"
+        assert is_address(selected_addr), f"not valid widecoin address: {selected_addr}"
         return selected_addr
 
     def make_unsigned_transaction(
@@ -1323,8 +1317,6 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             is_sweep=False,
             rbf=False) -> PartialTransaction:
 
-        if not coins:  # any bitcoin tx must have at least 1 input by consensus
-            raise NotEnoughFunds()
         if any([c.already_has_some_signatures() for c in coins]):
             raise Exception("Some inputs already contain signatures!")
 
@@ -2285,7 +2277,7 @@ class Abstract_Wallet(AddressSynchronizer, ABC):
             addr = req.get_address()
             if sanity_checks:
                 if not bitcoin.is_address(addr):
-                    raise Exception(_('Invalid Bitcoin address.'))
+                    raise Exception(_('Invalid Widecoin address.'))
                 if not self.is_mine(addr):
                     raise Exception(_('Address not in wallet.'))
             key = addr

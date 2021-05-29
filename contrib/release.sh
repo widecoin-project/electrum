@@ -8,6 +8,8 @@
 ELECTRUM_DIR=/opt/electrum
 WWW_DIR=/opt/electrum-web
 
+# Note:
+# uploadserver and website are set in /etc/hosts
 
 cd $ELECTRUM_DIR
 # rm -rf dist/*
@@ -31,7 +33,7 @@ fi
 set -ex
 
 # create tarball
-target=Electrum-$VERSION.tar.gz
+target=Electrum-WCN-$VERSION.tar.gz
 if test -f dist/$target; then
     echo "file exists: $target"
 else
@@ -42,7 +44,7 @@ else
        umask 0022 && \
        mkdir -p $FRESH_CLONE && \
        cd $FRESH_CLONE  && \
-       git clone https://github.com/spesmilo/electrum.git &&\
+       git clone https://github.com/widecoin-project/electrum-wcn.git &&\
        cd electrum
    git checkout "${COMMIT}^{commit}"
    sudo docker run -it \
@@ -87,7 +89,7 @@ else
         sudo rm -rf $FRESH_CLONE && \
         mkdir -p $FRESH_CLONE && \
         cd $FRESH_CLONE  && \
-        git clone https://github.com/spesmilo/electrum.git && \
+        git clone https://github.com/widecoin-project/electrum-wcn.git && \
         cd electrum
     git checkout "${COMMIT}^{commit}"
     sudo docker run -it \
@@ -105,8 +107,8 @@ else
 fi
 
 # android
-target1=Electrum-$VERSION.0-armeabi-v7a-release.apk
-target2=Electrum-$VERSION.0-arm64-v8a-release.apk
+target1=Electrum-WCN-$VERSION.0-armeabi-v7a-release.apk
+target2=Electrum-WCN-$VERSION.0-arm64-v8a-release.apk
 
 if test -f dist/$target1; then
     echo "file exists: $target1"
@@ -136,7 +138,7 @@ if test -f dist/electrum-$VERSION.dmg; then
 	echo "packages are already signed"
     else
 	echo "signing packages"
-	./contrib/sign_packages ThomasV
+	./contrib/sign_packages
     fi
 else
     echo "dmg is missing, aborting"
@@ -173,16 +175,21 @@ fi
 if test -f dist/uploaded; then
     echo "files already uploaded"
 else
-    ./contrib/upload
+    ./contrib/upload uploadserver
     touch dist/uploaded
 fi
 
+#exit 0
 
-# push changes to website repo
+# push changes to website
 pushd $WWW_DIR
 git diff
 git commit -a -m "version $VERSION"
 git push
 popd
 
-echo "run $WWW_DIR/publish.sh to sign the website commit and upload signature"
+# update webserver:
+echo "to deploy, type:"
+echo "ssh root@website \"cd /var/www/new; git pull github master\""
+
+# clear cloudflare cache
